@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 
 import models
-from db import engine
 from routers import auth, todos
+from db import engine
 
 app = FastAPI()
 
