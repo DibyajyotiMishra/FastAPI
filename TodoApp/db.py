@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:test1234!@localhost/ToDoAppDatabase'
+SQLALCHEMY_DATABASE_URL = 'mysql+pymysql://root:test1234!@127.0.0.1:3306/ToDoApplication'
 
 
 # def _fk_pragma_on_connect(dbapi_con, con_record):
