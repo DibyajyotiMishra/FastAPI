@@ -12,13 +12,17 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"]
+)
 
 SECRET_KEY = "579158e12ac534d9bfcd88a814a155229cc9d121e580aab972e76c19e6a16a60f74ecb6c4a911472f4fa5fdc94e0918919292f2dbc0e36fe89a35c2f5f8ccdf9"
 ALGORITHM = 'HS256'
 
 bcrypt_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl='token')
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl='/auth/signin')
+
 
 class UserRequest(BaseModel):
     first_name: str
@@ -54,10 +58,11 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 
-def create_access_token(username: str, user_id: int, expires_delta: timedelta):
+def create_access_token(username: str, user_id: int, role: str, expires_delta: timedelta):
     encode = {
         'sub': username,
-        'id': user_id
+        'id': user_id,
+        'role': role
     }
     expires = datetime.utcnow() + expires_delta
     encode.update({'exp': expires})
@@ -69,16 +74,16 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         payload = jwt.decode(token, SECRET_KEY, ALGORITHM)
         username: str = payload.get('sub')
         user_id: int = payload.get('id')
+        user_role: str = payload.get('role')
         if user_id is None or username is None:
             return JSONResponse(status_code=403, content="Forbidden!")
-        data = {'username': username, 'id': user_id}
+        data = {'username': username, 'id': user_id, 'role': user_role}
         return JSONResponse(status_code=200, content=jsonable_encoder(data))
     except JWTError:
         return JSONResponse(status_code=401, content="Unauthorized!")
 
 
-
-@router.post("/auth/")
+@router.post("/signup")
 async def create_user(db: db_dependency, create_user_request: UserRequest):
     user_model = Users(
         first_name=create_user_request.first_name,
@@ -95,11 +100,11 @@ async def create_user(db: db_dependency, create_user_request: UserRequest):
     return JSONResponse(status_code=201, content="User added!")
 
 
-@router.post("/token", response_model=Token)
+@router.post("/signin", response_model=Token)
 async def login_for_access_token(db: db_dependency, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         return JSONResponse(status_code=403, content="Forbidden!")
 
-    token = create_access_token(user.username, user.id, timedelta(minutes=20))
+    token = create_access_token(user.username, user.id, user.role, timedelta(minutes=20))
     return {'access_token': token, 'token_type': 'bearer'}
