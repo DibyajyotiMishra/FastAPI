@@ -57,3 +57,15 @@ async def update_password(user_resp: user_dependency, db: db_dependency, user_ve
     db.add(user_data)
     db.commit()
     return JSONResponse(status_code=201, content="Password updated")
+
+
+@router.put("/update-phone")
+async def update_phone(user_resp: user_dependency, db: db_dependency, phone_num: str):
+    if user_resp is None:
+        return JSONResponse(status_code=401, content="Authentication failed.")
+    user_id = int(json.loads(user_resp.body).get('id'))
+    user_data = db.query(Users).filter(Users.id == user_id).first()
+    user_data.phone_number = phone_num
+    db.add(user_data)
+    db.commit()
+    return JSONResponse(status_code=201, content="Phone Number updated.")
